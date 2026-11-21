@@ -1,0 +1,64 @@
+/* Application-wide layout */
+#root {
+    min-height: 100vh;
+    width: 100%;
+}
+
+/* Dashboard main area */
+.main-content {
+    flex: 1;
+    min-width: 0;
+}
+
+/* Document action area */
+.document-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 28px;
+}
+
+/* Document title */
+.main-content h2 {
+    color: #f8fafc;
+    font-weight: 700;
+}
+
+/* Workspace spacing */
+.workspace {
+    margin-top: 28px;
+    background: #111827;
+    border: 1px solid #273449;
+    border-radius: 12px;
+    padding: 20px;
+}
+
+/* Version history */
+.version-history {
+    margin-top: 28px;
+    padding: 20px;
+    background: #111827;
+    border: 1px solid #273449;
+    border-radius: 12px;
+}
+
+/* General section headings */
+h3 {
+    color: #f8fafc;
+    margin-bottom: 12px;
+}
+
+/* Small screens */
+@media (max-width: 600px) {
+    .document-actions {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .document-actions input,
+    .document-actions select,
+    .document-actions button {
+        width: 100%;
+    }
+}

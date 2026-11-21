@@ -1,0 +1,23 @@
+# Dependencies
+node_modules/
+
+# Build files
+dist/
+dist-ssr/
+
+# Environment variables and secrets
+.env
+.env.*
+!.env.example
+
+# Logs
+*.log
+
+# Installer and executable files
+*.exe
+edb_*
+
+# Editor files
+.vscode/
+.idea/
+.DS_Store
