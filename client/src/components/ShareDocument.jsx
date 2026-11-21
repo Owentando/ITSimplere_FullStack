@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 
 function ShareDocument({ documentId }) {
@@ -12,7 +13,7 @@ function ShareDocument({ documentId }) {
 
         try {
             const response = await fetch(
-                `http://localhost:5000/api/documents/${documentId}/share`,
+                `https://itsimplere-fullstack.onrender.com/api/documents/${documentId}/share`,
                 {
                     method: "POST",
                     headers: {
@@ -48,8 +49,8 @@ function ShareDocument({ documentId }) {
             <p className="share-description">
                 Invite someone to collaborate on this document.
             </p>
-            
-            <form onSubmit={handleShare} lassName="share-form">
+
+            <form onSubmit={handleShare} className="share-form">
                 <input
                     type="email"
                     placeholder="Enter user's email"

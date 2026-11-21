@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import socket from "../socket";
 
@@ -14,7 +15,7 @@ function Login({ onLogin }) {
 
         try {
             const response = await fetch(
-                "http://localhost:5000/api/auth/login",
+                "https://itsimplere-fullstack.onrender.com/api/auth/login",
                 {
                     method: "POST",
                     headers: {
@@ -34,29 +35,29 @@ function Login({ onLogin }) {
                 return;
             }
 
-           localStorage.setItem("token", data.token);
+            localStorage.setItem("token", data.token);
 
             socket.auth = {
-            token: data.token
-        };
+                token: data.token
+            };
 
-socket.connect();
+            socket.connect();
 
-onLogin(data.user);
+            onLogin(data.user);
 
         } catch (error) {
             setError("Could not connect to the server");
         }
     }
 
-        async function handleRegister(event) {
+    async function handleRegister(event) {
         event.preventDefault();
         setError("");
         setSuccess("");
 
         try {
             const response = await fetch(
-                "http://localhost:5000/api/auth/register",
+                "https://itsimplere-fullstack.onrender.com/api/auth/register",
                 {
                     method: "POST",
                     headers: {
@@ -102,6 +103,7 @@ onLogin(data.user);
                         required
                     />
                 )}
+
                 <input
                     type="email"
                     placeholder="Email"
@@ -131,9 +133,9 @@ onLogin(data.user);
                     setSuccess("");
                 }}
             >
-            {isRegistering
-                ? "Already have an account? Login"
-                : "Don't have an account? Register"}
+                {isRegistering
+                    ? "Already have an account? Login"
+                    : "Don't have an account? Register"}
             </button>
 
             {error && <p style={{ color: "#ef4444" }}>{error}</p>}
