@@ -1,0 +1,196 @@
+
+# CodeSync – Real-Time Collaborative Code & Whiteboard Editor
+
+CodeSync is a full-stack web application that allows multiple users to collaborate on code documents and digital whiteboards in real time.
+
+The platform provides a shared workspace where users can create documents, edit code, draw diagrams, manage document permissions, and review previous versions.
+
+This project was developed as part of the IT-Simplera Solutions Full Stack Development Internship – Batch 02, Project 01.
+
+
+## Technology Stack
+
+### Frontend
+- React
+- Vite
+- JavaScript
+- CSS
+- Monaco Editor
+
+### Backend
+- Node.js
+- Express.js
+- Socket.IO
+
+### Database
+- PostgreSQL
+
+### Authentication and Security
+- JSON Web Tokens (JWT)
+- bcryptjs for password hashing
+
+### Version Control
+- Git
+- GitHub
+
+
+## Features
+
+### 1. User Authentication
+- User registration and login.
+- Password hashing using bcryptjs.
+- JWT-based authentication.
+- Protected API endpoints.
+
+### 2. Document Management
+- Create, view and delete documents.
+- Support for code editor and whiteboard documents.
+- Dashboard displaying owned and shared documents.
+
+### 3. Code Editor
+- Monaco Editor integration.
+- Syntax highlighting.
+- Multiple programming language options.
+- Line numbers and automatic bracket matching.
+- Automatic indentation.
+- Real-time collaborative editing.
+- Database persistence.
+
+### 4. Collaborative Whiteboard
+- Freehand drawing.
+- Rectangle, circle and arrow shapes.
+- Text insertion.
+- Colour and stroke-width selection.
+- Move, resize and delete objects.
+- Zoom and pan controls.
+- Undo and redo.
+- Real-time collaboration and persistence.
+
+### 5. Document Permissions
+- Owner, Editor and Viewer roles.
+- Share documents with other registered users.
+- Role-based editing and access restrictions.
+
+### 6. Version History
+- View previous document versions.
+- Restore previous versions.
+- Restoring a version creates a new version entry.
+
+### 7. Real-Time Communication
+- Socket.IO integration.
+- Real-time document updates.
+- Automatic database persistence of collaborative changes.
+- Socket authentication and permission checks.
+
+
+## Installation and Setup
+
+### Prerequisites
+
+Make sure the following are installed:
+- Node.js
+- PostgreSQL
+- Git
+
+### 1. Clone the Repository
+
+```bash
+git clone https://github.com/Owentando/ITSimplere_FullStack.git
+cd ITSimplere_FullStack
+```
+
+### 2. Set Up the Backend
+
+```bash
+cd server
+npm install
+```
+
+Create a `.env` file inside the `server` folder and configure the following environment variables:
+
+```env
+DB_USER=your_database_username
+DB_HOST=localhost
+DB_NAME=collaborative_editor
+DB_PASSWORD=your_database_password
+DB_PORT=5432
+JWT_SECRET=your_secret_key
+```
+
+Replace the example values with your own local PostgreSQL credentials and a secure JWT secret.
+
+Start the backend:
+
+```bash
+node server.js
+```
+
+### 3. Set Up the Frontend
+
+Open a second terminal:
+
+```bash
+cd client
+npm install
+npm run dev
+```
+
+### 4. Open the Application
+
+Open the local URL displayed by Vite in your browser, usually:
+
+http://localhost:5173
+
+
+## Project Structure
+
+```text
+ITSimplere_FullStack/
+│
+├── client/
+│   ├── public/
+│   ├── src/
+│   │   ├── assets/
+│   │   ├── components/
+│   │   │   ├── CodeEditor.jsx
+│   │   │   ├── DocumentCard.jsx
+│   │   │   ├── Login.jsx
+│   │   │   ├── Navbar.jsx
+│   │   │   ├── ShareDocument.jsx
+│   │   │   ├── Sidebar.jsx
+│   │   │   └── Whiteboard.jsx
+│   │   ├── pages/
+│   │   │   └── Dashboard.jsx
+│   │   ├── socket.js
+│   │   ├── App.jsx
+│   │   └── index.css
+│   └── package.json
+│
+├── server/
+│   ├── auth.js
+│   ├── db.js
+│   ├── middleware.js
+│   ├── server.js
+│   └── package.json
+│
+├── .gitignore
+└── README.md
+```
+
+## Current Limitations and Future Improvements
+
+The current version provides the core collaborative editing functionality. The following improvements are planned for future development:
+
+- Implement Operational Transformation (OT) or Conflict-free Replicated Data Types (CRDT) for more robust simultaneous editing.
+- Add live user presence indicators and collaborative cursors.
+- Implement offline editing and synchronisation when users reconnect.
+- Introduce shared pub/sub infrastructure for horizontal WebSocket scaling.
+- Add code execution and live preview functionality.
+- Expand automated testing and performance/load testing.
+- Deploy the application to a production hosting environment.
+
+## Project Status
+
+The application currently supports authentication, document management, role-based permissions, collaborative code editing, whiteboard collaboration, database persistence and version history.
+
+Further development is required to implement the remaining advanced collaboration and deployment features.
