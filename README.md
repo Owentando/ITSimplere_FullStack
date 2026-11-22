@@ -155,6 +155,31 @@ Open the local URL displayed by Vite in your browser, usually:
 
 http://localhost:5173
 
+### Deploy to Render
+
+Configure the backend as a Web Service with `server` as its root directory,
+`npm install` as its build command, and `npm start` as its start command. The
+server listens on Render's `PORT` environment variable.
+
+Set these backend environment variables in Render:
+
+```env
+DATABASE_URL=<Render PostgreSQL internal URL>
+JWT_SECRET=<a long, random secret>
+APP_BASE_URL=https://itsimplere-fullstack-1.onrender.com
+CLIENT_URL=https://itsimplere-fullstack-1.onrender.com
+```
+
+Configure the frontend as a Static Site with `client` as its root directory,
+`npm install && npm run build` as its build command, and `dist` as its publish
+directory. Set `VITE_API_BASE_URL=https://itsimplere-fullstack.onrender.com`.
+The frontend defaults to these Render URLs in production, and the environment
+variables can override them if the service URLs change.
+
+Set SMTP environment variables on the backend to enable reset and sharing
+emails. Keep database credentials, mail credentials, and JWT secrets in
+Render's environment settings rather than in source code.
+
 
 ## Project Structure
 

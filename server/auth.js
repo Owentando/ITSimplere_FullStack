@@ -148,7 +148,10 @@ router.post("/forgot-password", async (req, res) => {
 
     let resetUrl;
     try {
-        resetUrl = new URL("/", process.env.APP_BASE_URL || "http://localhost:5173");
+        const defaultAppUrl = process.env.NODE_ENV === "production"
+            ? "https://itsimplere-fullstack-1.onrender.com"
+            : "http://localhost:5173";
+        resetUrl = new URL("/", process.env.APP_BASE_URL || defaultAppUrl);
         if (!["http:", "https:"].includes(resetUrl.protocol)) {
             throw new Error("APP_BASE_URL must use HTTP or HTTPS");
         }
