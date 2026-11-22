@@ -6,6 +6,8 @@ const http = require("http");
 const { Server } = require("socket.io");
 const authRoutes = require("./auth");
 const authenticateToken = require("./middleware");
+const createSmtpTransport = require("./mailer");
+const { getUserSettings } = require("./settings-store");
 const app = express();
 
 
@@ -171,7 +173,7 @@ app.post("/api/documents/:id/share", authenticateToken, async (req, res) => {
         }
 
         const userResult = await pool.query(
-            "SELECT id FROM users WHERE email = $1",
+            "SELECT id, email FROM users WHERE email = $1",
             [email]
         );
 
@@ -189,6 +191,7 @@ app.post("/api/documents/:id/share", authenticateToken, async (req, res) => {
             });
         }
 
+        const recipientSettings = await getUserSettings(sharedUserId);
         await pool.query(
             `INSERT INTO document_permissions
              (document_id, user_id, role)
@@ -198,11 +201,36 @@ app.post("/api/documents/:id/share", authenticateToken, async (req, res) => {
             [documentId, sharedUserId, role]
         );
 
+        let notificationWarning;
+        if (recipientSettings.notify_on_share) {
+            try {
+                const transport = createSmtpTransport();
+                if (!transport) {
+                    notificationWarning = "Email notifications are enabled, but SMTP is not configured.";
+                } else {
+                    const documentResult = await pool.query(
+                        "SELECT title FROM documents WHERE id = $1",
+                        [documentId]
+                    );
+                    await transport.sendMail({
+                        from: process.env.SMTP_FROM,
+                        to: userResult.rows[0].email,
+                        subject: "A CodeSync document was shared with you",
+                        text: `${req.user.email} shared "${documentResult.rows[0].title}" with you as a ${role}. Sign in to CodeSync to open it.`
+                    });
+                }
+            } catch (error) {
+                console.error("Document share email notification failed:", error.message);
+                notificationWarning = "The document was shared, but the email notification could not be sent.";
+            }
+        }
+
         res.status(201).json({
             message: "Document shared successfully",
             documentId,
             sharedWith: email,
-            role
+            role,
+            ...(notificationWarning ? { notificationWarning } : {})
         });
 
     } catch (error) {

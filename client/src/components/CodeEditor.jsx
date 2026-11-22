@@ -1,6 +1,6 @@
 import Editor from "@monaco-editor/react";
 
-function CodeEditor({ value, onChange, language }) {
+function CodeEditor({ value, onChange, language, theme = "dark" }) {
 
     return (
         <div>
@@ -8,7 +8,7 @@ function CodeEditor({ value, onChange, language }) {
 
             <Editor
                 height="400px"
-                theme="vs-dark"
+                theme={theme === "light" ? "vs" : "vs-dark"}
                 language={language}
                 value={value}
                 onChange={(newValue) => onChange(newValue || "")}

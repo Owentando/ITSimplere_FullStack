@@ -1,7 +1,8 @@
 
 import { io } from "socket.io-client";
+import { API_BASE_URL } from "./api";
 
-const socket = io("https://itsimplere-fullstack.onrender.com", {
+const socket = io(API_BASE_URL, {
     autoConnect: false,
     auth: {
         token: localStorage.getItem("token")

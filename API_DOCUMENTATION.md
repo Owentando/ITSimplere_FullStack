@@ -173,6 +173,60 @@ Status: `404 Not Found`
   "message": "User not found"
 }
 ```
+
+### 5.4 Update Display Name
+
+**Endpoint:** `PUT /api/auth/profile`
+
+**Authentication:** Required.
+
+**Request Body:**
+
+```json
+{
+  "username": "New display name"
+}
+```
+
+### 5.5 Get and Update Settings
+
+**Endpoints:** `GET /api/auth/settings`, `PUT /api/auth/settings`
+
+**Authentication:** Required.
+
+Settings include `default_language` (`javascript`, `python`, `java`, `cpp` or `html`), `autosave_delay_ms` (`500`, `1000` or `2000`), `theme` (`dark` or `light`) and `notify_on_share` (boolean). Both endpoints return the settings object.
+
+### 5.6 Change Password
+
+**Endpoint:** `POST /api/auth/change-password`
+
+**Authentication:** Required.
+
+**Request Body:**
+
+```json
+{
+  "currentPassword": "current_password",
+  "newPassword": "new_password_at_least_8_characters"
+}
+```
+
+### 5.7 Delete Account
+
+**Endpoint:** `DELETE /api/auth/account`
+
+**Authentication:** Required.
+
+**Request Body:**
+
+```json
+{
+  "currentPassword": "current_password",
+  "confirmation": "DELETE"
+}
+```
+
+Account deletion is blocked while the user owns documents. On success, shared access is removed and the user is anonymized in other users' version history.
 ## 6. Document Management Endpoints
 
 All endpoints in this section require authentication.
@@ -405,6 +459,7 @@ The response also includes the deleted document.
 The role must be either `Editor` or `Viewer`.
 
 Sharing an existing document with the same user updates their assigned role.
+If the recipient opted in to share notifications, the server attempts to email them. If SMTP is unavailable, the document is still shared and the response includes `notificationWarning`.
 
 **Success Response:** `201 Created`
 

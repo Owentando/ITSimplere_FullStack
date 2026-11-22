@@ -82,6 +82,12 @@ This project was developed as part of the IT-Simplera Solutions Full Stack Devel
 - Automatic database persistence of collaborative changes.
 - Socket authentication and permission checks.
 
+### 8. Account and Workspace Settings
+- Update your display name and change your password.
+- Choose a default programming language, autosave delay and light or dark theme.
+- Opt in to email notifications when a document is shared with you (SMTP configuration required).
+- Delete your account after removing documents you own; shared access is revoked and version history is anonymized.
+
 
 ## Installation and Setup
 
@@ -115,9 +121,17 @@ DB_NAME=collaborative_editor
 DB_PASSWORD=your_database_password
 DB_PORT=5432
 JWT_SECRET=your_secret_key
+SMTP_HOST=your_smtp_host
+SMTP_PORT=587
+SMTP_SECURE=false
+SMTP_USER=your_smtp_username
+SMTP_PASS=your_smtp_password
+SMTP_FROM=CodeSync <no-reply@your-domain.com>
+APP_BASE_URL=http://localhost:5173
 ```
 
 Replace the example values with your own local PostgreSQL credentials and a secure JWT secret.
+Configure the SMTP values with your email provider to enable password reset links. Use port 465 with `SMTP_SECURE=true` for implicit TLS; other providers commonly use port 587 with `SMTP_SECURE=false`. The `APP_BASE_URL` value must be the frontend URL users visit. Reset links expire after 30 minutes and can only be used once.
 
 Start the backend:
 

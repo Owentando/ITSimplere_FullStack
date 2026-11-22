@@ -1,9 +1,21 @@
-function Navbar() {
+function Navbar({ user, isMenuOpen, onMenuClick }) {
     return (
         <nav className="navbar">
-            <h1>Collaborative Editor</h1>
+            <button
+                className={`nav-menu-button${isMenuOpen ? " is-open" : ""}`}
+                type="button"
+                aria-label={isMenuOpen ? "Close navigation menu" : "Open navigation menu"}
+                aria-expanded={isMenuOpen}
+                aria-controls="navigation-panel"
+                onClick={onMenuClick}
+            >
+                <span />
+                <span />
+                <span />
+            </button>
+            <h1>CodeSync</h1>
 
-            <p>Welcome, User</p>
+            <p>Welcome, {user.username}</p>
         </nav>
     );
 }

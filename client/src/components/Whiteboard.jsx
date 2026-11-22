@@ -4,7 +4,7 @@ function Whiteboard({ content, onChange }) {
 
     const canvasRef = useRef(null);
     const [isDrawing, setIsDrawing] = useState(false);
-    const [color, setColor] = useState("black");
+    const [color, setColor] = useState("#000000");
     const [strokeWidth, setStrokeWidth] = useState(3);
     const [isErasing, setIsErasing] = useState(false);
     const [tool, setTool] = useState("draw");
@@ -718,6 +718,11 @@ function redo() {
     setRedoStack([]);
 }
 
+function selectMode(nextMode) {
+    setTool(nextMode === "eraser" ? "draw" : nextMode);
+    setIsErasing(nextMode === "eraser");
+}
+
     //draw function
     function draw(event) {
     if (!isDrawing) {
@@ -905,153 +910,148 @@ if (tool === "select" && isDrawing && selectedShapeIndex !== null) {
     return (
         <div className="whiteboard-container">
             <div className="whiteboard-toolbar">
-                <div className="toolbar-group">
-                    <span className="toolbar-label">Colours</span>
-                <button onClick={() => setColor("black")}>
-                    Black
-                </button>
+                <details className="toolbar-group" name="whiteboard-controls">
+                    <summary>
+                        <span className="toolbar-label">Colours</span>
+                    </summary>
+                    <div className="toolbar-options">
+                        <label className="toolbar-color-picker">
+                            Custom
+                            <input
+                                type="color"
+                                aria-label="Choose a custom drawing colour"
+                                value={color}
+                                onChange={event => setColor(event.target.value)}
+                            />
+                        </label>
+                        <button className={color === "#000000" ? "active-tool" : ""} onClick={() => setColor("#000000")}>
+                            Black
+                        </button>
+                        <button className={color === "#ff0000" ? "active-tool" : ""} onClick={() => setColor("#ff0000")}>
+                            Red
+                        </button>
+                        <button className={color === "#0000ff" ? "active-tool" : ""} onClick={() => setColor("#0000ff")}>
+                            Blue
+                        </button>
+                        <button className={color === "#008000" ? "active-tool" : ""} onClick={() => setColor("#008000")}>
+                            Green
+                        </button>
+                    </div>
+                </details>
 
-                <button onClick={() => setColor("red")}>
-                    Red
-                </button>
+                <details className="toolbar-group" name="whiteboard-controls">
+                    <summary>
+                        <span className="toolbar-label">Stroke Width</span>
+                    </summary>
+                    <div className="toolbar-options">
+                        <button className={strokeWidth === 1 ? "active-tool" : ""} onClick={() => setStrokeWidth(1)}>
+                            Thin
+                        </button>
+                        <button className={strokeWidth === 3 ? "active-tool" : ""} onClick={() => setStrokeWidth(3)}>
+                            Medium
+                        </button>
+                        <button className={strokeWidth === 8 ? "active-tool" : ""} onClick={() => setStrokeWidth(8)}>
+                            Thick
+                        </button>
+                    </div>
+                </details>
 
-                <button onClick={() => setColor("blue")}>
-                    Blue
-                </button>
+                <details className="toolbar-group" name="whiteboard-controls">
+                    <summary>
+                        <span className="toolbar-label">Mode</span>
+                    </summary>
+                    <div className="toolbar-options">
+                        <button
+                            className={tool === "draw" && !isErasing ? "active-tool" : ""}
+                            onClick={() => selectMode("draw")}
+                        >
+                            Freehand
+                        </button>
+                        <button
+                            className={tool === "rectangle" ? "active-tool" : ""}
+                            onClick={() => selectMode("rectangle")}
+                        >
+                            Rectangle
+                        </button>
+                        <button
+                            className={tool === "circle" ? "active-tool" : ""}
+                            onClick={() => selectMode("circle")}
+                        >
+                            Circle
+                        </button>
+                        <button
+                            className={tool === "arrow" ? "active-tool" : ""}
+                            onClick={() => selectMode("arrow")}
+                        >
+                            Arrow
+                        </button>
+                        <button
+                            className={tool === "text" ? "active-tool" : ""}
+                            onClick={() => selectMode("text")}
+                        >
+                            Text
+                        </button>
+                        <button
+                            className={tool === "pan" ? "active-tool" : ""}
+                            onClick={() => selectMode("pan")}
+                        >
+                            Pan
+                        </button>
+                        <button
+                            className={tool === "select" ? "active-tool" : ""}
+                            onClick={() => selectMode("select")}
+                        >
+                            Select
+                        </button>
+                    </div>
+                </details>
 
-                <button onClick={() => setColor("green")}>
-                    Green
-                </button>
-            </div>
+                <details className="toolbar-group" name="whiteboard-controls">
+                    <summary>
+                        <span className="toolbar-label">Actions</span>
+                    </summary>
+                    <div className="toolbar-options">
+                        <button
+                            className={tool === "draw" && isErasing ? "active-tool" : ""}
+                            onClick={() => selectMode(tool === "draw" && isErasing ? "draw" : "eraser")}
+                        >
+                            Eraser
+                        </button>
+                        <button onClick={undo}>Undo</button>
+                        <button onClick={redo}>Redo</button>
+                        <button onClick={clearCanvas}>Clear Canvas</button>
+                        <button onClick={() => {
+                            if (selectedShapeIndex === null) {
+                                return;
+                            }
 
-            <div className="toolbar-group">
-                <span className="toolbar-label">Stroke Width</span>
+                            setShapes(previousShapes =>
+                                previousShapes.filter(
+                                    (shape, index) => index !== selectedShapeIndex
+                                )
+                            );
 
-                <button onClick={() => setStrokeWidth(1)}>
-                    Thin
-                </button>
+                            setSelectedShapeIndex(null);
+                        }}>
+                            Delete Selected
+                        </button>
+                    </div>
+                </details>
 
-                <button onClick={() => setStrokeWidth(3)}>
-                    Medium
-                </button>
+                <details className="toolbar-group" name="whiteboard-controls">
+                    <summary>
+                        <span className="toolbar-label">Zoom</span>
+                    </summary>
+                    <div className="toolbar-options">
+                        <button onClick={() => setZoom(Math.min(2, zoom + 0.1))}>
+                            Zoom In +
+                        </button>
+                        <button onClick={() => setZoom(Math.max(0.5, zoom - 0.1))}>
+                            Zoom Out -
+                        </button>
+                    </div>
+                </details>
 
-                <button onClick={() => setStrokeWidth(8)}>
-                    Thick
-                </button>
-            </div>
-
-            <div  className="toolbar-group">
-                 <span className="toolbar-label">Mode</span>
-
-                <button onClick={() => setIsErasing(true)}>
-                    Eraser
-                </button>
-
-                <button onClick={() => setIsErasing(false)}>
-                    Draw
-                </button>
-            </div>
-
-            <div className="toolbar-group">
-                <span className="toolbar-label">Actions</span>
-
-                <button onClick={undo}>
-                    Undo
-                </button>
-
-                <button onClick={redo}>
-                    Redo
-                </button>
-
-                <button onClick={clearCanvas}>
-                    Clear Canvas
-                </button>
-
-                <button onClick={() => {
-                    if (selectedShapeIndex === null) {
-                        return;
-                    }
-
-                    setShapes(previousShapes =>
-                        previousShapes.filter(
-                            (shape, index) => index !== selectedShapeIndex
-                        )
-                    );
-
-                    setSelectedShapeIndex(null);
-                }}>
-                    Delete Selected
-                </button>
-            </div>
-
-            <div className="toolbar-group">
-                <span className="toolbar-label">Zoom</span>
-
-                <button onClick={() => setZoom(Math.min(2, zoom + 0.1))}>
-                    Zoom In +
-                 </button>
-
-                <button onClick={() => setZoom(Math.max(0.5, zoom - 0.1))}>
-                    Zoom Out -
-                </button>
-
-                <span>
-                    Zoom: {Math.round(zoom * 100)}%
-                </span>
-            </div>
-
-            <div className="toolbar-group">
-                <span className="toolbar-label">Tools</span>
-
-                <button
-                    className={tool === "draw" ? "active-tool" : ""}
-                    onClick={() => setTool("draw")}
-                >
-                    Freehand
-                </button>
-
-                <button
-                    className={tool === "rectangle" ? "active-tool" : ""}
-                    onClick={() => setTool("rectangle")}
-                >
-                    Rectangle
-                </button>
-
-               <button
-                    className={tool === "circle" ? "active-tool" : ""}
-                    onClick={() => setTool("circle")}
-                >
-                    Circle
-                </button>
-
-                <button
-                    className={tool === "arrow" ? "active-tool" : ""}
-                    onClick={() => setTool("arrow")}
-                >
-                    Arrow
-                </button>
-
-                <button
-                    className={tool === "text" ? "active-tool" : ""}
-                    onClick={() => setTool("text")}
-                >
-                    Text
-                </button>
-
-                <button
-                    className={tool === "pan" ? "active-tool" : ""}
-                    onClick={() => setTool("pan")}
-                >
-                    Pan
-                </button>
-
-                <button
-                    className={tool === "select" ? "active-tool" : ""}
-                    onClick={() => setTool("select")}
-                >
-                    Select
-                </button>
-            </div>
             </div>
 
             {tool === "text" && (

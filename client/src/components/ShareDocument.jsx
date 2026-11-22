@@ -1,5 +1,6 @@
 
 import { useState } from "react";
+import { API_BASE_URL } from "../api";
 
 function ShareDocument({ documentId }) {
     const [email, setEmail] = useState("");
@@ -13,7 +14,7 @@ function ShareDocument({ documentId }) {
 
         try {
             const response = await fetch(
-                `https://itsimplere-fullstack.onrender.com/api/documents/${documentId}/share`,
+                `${API_BASE_URL}/api/documents/${documentId}/share`,
                 {
                     method: "POST",
                     headers: {
@@ -34,7 +35,11 @@ function ShareDocument({ documentId }) {
                 return;
             }
 
-            setMessage("Document shared successfully!");
+            setMessage(
+                data.notificationWarning
+                    ? `${data.message} ${data.notificationWarning}`
+                    : data.message || "Document shared successfully!"
+            );
             setEmail("");
 
         } catch (error) {

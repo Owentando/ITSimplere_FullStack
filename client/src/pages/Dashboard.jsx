@@ -1,5 +1,6 @@
 
 import { useState, useEffect, useRef } from "react";
+import { API_BASE_URL } from "../api";
 import DocumentCard from "../components/DocumentCard";
 import Sidebar from "../components/Sidebar";
 import socket from "../socket";
@@ -7,6 +8,20 @@ import CodeEditor from "../components/CodeEditor";
 import Whiteboard from "../components/Whiteboard";
 import Login from "../components/Login";
 import ShareDocument from "../components/ShareDocument";
+import Navbar from "../components/Navbar";
+import Settings from "../components/Settings";
+
+const DEFAULT_USER_SETTINGS = {
+    default_language: "javascript",
+    autosave_delay_ms: 500,
+    theme: "dark",
+    notify_on_share: false
+};
+
+function getWorkspaceDocumentId() {
+    const match = window.location.pathname.match(/^\/documents\/(\d+)\/?$/);
+    return match ? Number(match[1]) : null;
+}
 
 function Dashboard() {
 
@@ -18,8 +33,74 @@ function Dashboard() {
     const [language, setLanguage] = useState("javascript");
     const saveTimer = useRef(null);
     const [editingId, setEditingId] = useState(null);
+    const [routeDocumentId, setRouteDocumentId] = useState(getWorkspaceDocumentId);
+    const workspaceHistoryEntry = useRef(false);
+    const editDocumentRef = useRef(null);
+    const clearWorkspaceRef = useRef(null);
     const [user, setUser] = useState(null);
     const [documentRole, setDocumentRole] = useState(null);
+    const [isNavigationOpen, setIsNavigationOpen] = useState(false);
+    const [activeSection, setActiveSection] = useState("dashboard");
+    const [userSettings, setUserSettings] = useState(DEFAULT_USER_SETTINGS);
+    const [settingsLoading, setSettingsLoading] = useState(true);
+    const [settingsError, setSettingsError] = useState("");
+    const [settingsReloadCount, setSettingsReloadCount] = useState(0);
+    const [theme, setTheme] = useState(() => (
+        localStorage.getItem("codesync-theme") === "light" ? "light" : "dark"
+    ));
+
+    function clearWorkspace() {
+        if (editingId !== null) {
+            socket.emit("leave-document", String(editingId));
+        }
+
+        setRouteDocumentId(null);
+        setEditingId(null);
+        setDocumentRole(null);
+        setVersions([]);
+        setContent("");
+        setNewDocument("");
+        setDocumentType("Code Editor");
+    }
+
+    function closeWorkspace() {
+        if (workspaceHistoryEntry.current) {
+            workspaceHistoryEntry.current = false;
+            window.history.back();
+            return;
+        }
+
+        if (getWorkspaceDocumentId() !== null) {
+            window.history.replaceState({}, "", "/");
+        }
+
+        clearWorkspace();
+    }
+
+    useEffect(() => {
+        clearWorkspaceRef.current = clearWorkspace;
+        editDocumentRef.current = editDocument;
+    });
+
+    useEffect(() => {
+        if (!isNavigationOpen) {
+            return;
+        }
+
+        function closeOnEscape(event) {
+            if (event.key === "Escape") {
+                setIsNavigationOpen(false);
+            }
+        }
+
+        window.addEventListener("keydown", closeOnEscape);
+        return () => window.removeEventListener("keydown", closeOnEscape);
+    }, [isNavigationOpen]);
+
+    useEffect(() => {
+        document.documentElement.dataset.theme = theme;
+        localStorage.setItem("codesync-theme", theme);
+    }, [theme]);
 
     useEffect(() => {
         socket.on("connect", () => {
@@ -41,7 +122,7 @@ function Dashboard() {
 
         if (!token) return;
 
-        fetch("https://itsimplere-fullstack.onrender.com/api/auth/profile", {
+        fetch(`${API_BASE_URL}/api/auth/profile`, {
             headers: {
                 Authorization: `Bearer ${token}`
             }
@@ -63,6 +144,76 @@ function Dashboard() {
             });
     }, []);
 
+    useEffect(() => {
+        if (user?.id && routeDocumentId !== null && editingId !== routeDocumentId) {
+            editDocumentRef.current(routeDocumentId, false);
+        }
+    }, [user?.id, routeDocumentId, editingId]);
+
+    useEffect(() => {
+        function handlePopState() {
+            const documentId = getWorkspaceDocumentId();
+            workspaceHistoryEntry.current = false;
+
+            if (documentId === null) {
+                clearWorkspaceRef.current();
+                return;
+            }
+
+            clearWorkspaceRef.current();
+            setRouteDocumentId(documentId);
+        }
+
+        window.addEventListener("popstate", handlePopState);
+        return () => window.removeEventListener("popstate", handlePopState);
+    }, [editingId]);
+
+    useEffect(() => {
+        const userId = user?.id;
+        if (!userId) {
+            return;
+        }
+
+        let isCurrent = true;
+        const token = localStorage.getItem("token");
+
+        fetch(`${API_BASE_URL}/api/auth/settings`, {
+            headers: { Authorization: `Bearer ${token}` }
+        })
+            .then(async response => {
+                if (!response.ok) {
+                    const data = await response.json().catch(() => ({}));
+                    throw new Error(
+                        data.message || `Settings request failed (${response.status}).`
+                    );
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (!isCurrent) {
+                    return;
+                }
+                setUserSettings(data.settings);
+                setLanguage(data.settings.default_language);
+                setTheme(data.settings.theme);
+            })
+            .catch(error => {
+                if (isCurrent) {
+                    console.error("Settings loading error:", error);
+                    setSettingsError(error.message || "Could not retrieve your settings.");
+                }
+            })
+            .finally(() => {
+                if (isCurrent) {
+                    setSettingsLoading(false);
+                }
+            });
+
+        return () => {
+            isCurrent = false;
+        };
+    }, [user?.id, settingsReloadCount]);
+
     // Retrieve documents from the backend
     useEffect(() => {
         const token = localStorage.getItem("token");
@@ -73,7 +224,7 @@ function Dashboard() {
             return;
         }
 
-        fetch("https://itsimplere-fullstack.onrender.com/api/documents", {
+        fetch(`${API_BASE_URL}/api/documents`, {
             headers: {
                 Authorization: `Bearer ${token}`
             }
@@ -105,7 +256,7 @@ function Dashboard() {
         // If a document is being edited
         if (editingId !== null) {
             const response = await fetch(
-                `https://itsimplere-fullstack.onrender.com/api/documents/${editingId}`,
+                `${API_BASE_URL}/api/documents/${editingId}`,
                 {
                     method: "PUT",
                     headers: {
@@ -133,17 +284,13 @@ function Dashboard() {
             );
 
             setDocuments(updatedDocuments);
-
-            setEditingId(null);
-            setNewDocument("");
-            setDocumentType("Code Editor");
-            setContent("");
+            closeWorkspace();
 
             return;
         }
 
         // Otherwise, create a new document
-        const response = await fetch("https://itsimplere-fullstack.onrender.com/api/documents", {
+        const response = await fetch(`${API_BASE_URL}/api/documents`, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
@@ -152,7 +299,7 @@ function Dashboard() {
             body: JSON.stringify({
                 title: newDocument,
                 type: documentType,
-                language: language
+                language: userSettings.default_language
             })
         });
 
@@ -169,12 +316,12 @@ function Dashboard() {
     }
 
     // editDocument function (PUT)
-    async function editDocument(id) {
+    async function editDocument(id, shouldNavigate = true) {
         try {
             const token = localStorage.getItem("token");
 
             const response = await fetch(
-                `https://itsimplere-fullstack.onrender.com/api/documents/${id}`,
+                `${API_BASE_URL}/api/documents/${id}`,
                 {
                     headers: {
                         Authorization: `Bearer ${token}`
@@ -182,11 +329,20 @@ function Dashboard() {
                 }
             );
 
+            if (!response.ok) {
+                throw new Error("Could not retrieve this document.");
+            }
+
             const documentToEdit = await response.json();
             console.log(
                 "Document returned by server:",
                 JSON.stringify(documentToEdit, null, 2)
             );
+
+            if (shouldNavigate) {
+                window.history.pushState({}, "", `/documents/${id}`);
+                workspaceHistoryEntry.current = true;
+            }
 
             setNewDocument(documentToEdit.title);
             setDocumentType(documentToEdit.type);
@@ -195,6 +351,7 @@ function Dashboard() {
             console.log("Current document role:", documentToEdit.user_role);
             setLanguage(documentToEdit.language || "javascript");
             setEditingId(id);
+            setRouteDocumentId(id);
             loadVersions(id);
 
             if (editingId !== null) {
@@ -205,6 +362,11 @@ function Dashboard() {
 
         } catch (error) {
             console.error("Error opening document:", error);
+            if (!shouldNavigate && Number(id) === getWorkspaceDocumentId()) {
+                window.history.replaceState({}, "", "/");
+                workspaceHistoryEntry.current = false;
+                setRouteDocumentId(null);
+            }
         }
     }
 
@@ -214,7 +376,7 @@ function Dashboard() {
             const token = localStorage.getItem("token");
 
             const response = await fetch(
-                `https://itsimplere-fullstack.onrender.com/api/documents/${id}/versions`,
+                `${API_BASE_URL}/api/documents/${id}/versions`,
                 {
                     headers: {
                         Authorization: `Bearer ${token}`
@@ -241,7 +403,7 @@ function Dashboard() {
             const token = localStorage.getItem("token");
 
             const response = await fetch(
-                `https://itsimplere-fullstack.onrender.com/api/documents/${editingId}/versions/${versionId}/restore`,
+                `${API_BASE_URL}/api/documents/${editingId}/versions/${versionId}/restore`,
                 {
                     method: "POST",
                     headers: {
@@ -271,7 +433,7 @@ function Dashboard() {
     async function deleteDocument(id) {
         const token = localStorage.getItem("token");
 
-        await fetch(`https://itsimplere-fullstack.onrender.com/api/documents/${id}`, {
+        await fetch(`${API_BASE_URL}/api/documents/${id}`, {
             method: "DELETE",
             headers: {
                 Authorization: `Bearer ${token}`
@@ -285,36 +447,164 @@ function Dashboard() {
         setDocuments(updatedDocuments);
     }
 
+    const visibleDocuments = activeSection === "my-documents"
+        ? documents.filter(document => document.user_role === "Owner")
+        : activeSection === "shared-documents"
+            ? documents.filter(document => document.user_role !== "Owner")
+            : documents;
+    const isWorkspacePage = editingId !== null || routeDocumentId !== null;
+    const sectionTitle = isWorkspacePage
+        ? newDocument || "Workspace"
+        : activeSection === "settings"
+            ? "Settings"
+            : activeSection === "shared-documents"
+                ? "Shared Documents"
+                : activeSection === "my-documents"
+                    ? "My Documents"
+                    : "Dashboard";
+    const emptyDocumentsMessage = activeSection === "shared-documents"
+        ? "No documents have been shared with you yet."
+        : activeSection === "my-documents"
+            ? "You haven't created any documents yet."
+            : "No documents yet.";
+
     return (
         !user ? (
             <Login onLogin={setUser} />
         ) : (
-            <div className="dashboard">
-                <Sidebar />
+            <>
+                <Navbar
+                    user={user}
+                    isMenuOpen={isNavigationOpen}
+                    onMenuClick={() => setIsNavigationOpen(open => !open)}
+                />
+                <div className="dashboard">
+                    <Sidebar
+                        isOpen={isNavigationOpen}
+                        onClose={() => setIsNavigationOpen(false)}
+                        activeSection={activeSection}
+                        onNavigate={section => {
+                            if (isWorkspacePage) {
+                                closeWorkspace();
+                            }
+                            setActiveSection(section);
+                            setIsNavigationOpen(false);
+                        }}
+                    />
 
-                <main className="main-content">
+                    <main className={`main-content${isWorkspacePage ? " workspace-page-main" : ""}`}>
 
                     <div className="dashboard-header">
                         <div>
-                            <h2>My Documents</h2>
-                            <p>Manage your collaborative workspaces.</p>
+                            <h2>{sectionTitle}</h2>
+                            <p>
+                                {isWorkspacePage
+                                    ? `${documentType} collaborative workspace`
+                                    : activeSection === "settings"
+                                        ? "Manage your account and workspace preferences."
+                                        : activeSection === "shared-documents"
+                                            ? "Workspaces shared with you by other collaborators."
+                                            : "Manage your collaborative workspaces."}
+                            </p>
+                            {(isWorkspacePage || activeSection !== "dashboard") && (
+                                <button
+                                    className="back-navigation-button"
+                                    type="button"
+                                    onClick={() => {
+                                        if (isWorkspacePage) {
+                                            closeWorkspace();
+                                        } else {
+                                            setActiveSection("dashboard");
+                                        }
+                                    }}
+                                >
+                                    {isWorkspacePage ? "← Back to Documents" : "← Back to Dashboard"}
+                                </button>
+                            )}
                         </div>
+
+                        {isWorkspacePage && editingId !== null && (
+                            <div className="workspace-info">
+                                <span className="workspace-type">{documentType}</span>
+                                <span className="workspace-role">{documentRole}</span>
+                            </div>
+                        )}
 
                         <button
                             className="logout-button"
                             onClick={() => {
                                 socket.disconnect();
+                                workspaceHistoryEntry.current = false;
+                                window.history.replaceState({}, "", "/");
                                 localStorage.removeItem("token");
                                 setUser(null);
+                                setIsNavigationOpen(false);
                                 setDocuments([]);
-                                setEditingId(null);
-                                setDocumentRole(null);
+                                clearWorkspace();
+                                setActiveSection("dashboard");
+                                setSettingsLoading(true);
+                                setSettingsError("");
+                                setUserSettings(DEFAULT_USER_SETTINGS);
+                                setLanguage("javascript");
                             }}
                         >
                             Logout
                         </button>
                     </div>
 
+                    {isWorkspacePage && editingId === null ? (
+                        <p>Loading workspace...</p>
+                    ) : activeSection === "settings" ? (
+                        settingsLoading ? (
+                            <p>Loading settings...</p>
+                        ) : settingsError ? (
+                            <div className="settings-load-error">
+                                <p className="settings-feedback is-error" role="alert">
+                                    Could not load your settings: {settingsError}
+                                </p>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setSettingsError("");
+                                        setSettingsLoading(true);
+                                        setSettingsReloadCount(count => count + 1);
+                                    }}
+                                >
+                                    Retry loading settings
+                                </button>
+                            </div>
+                        ) : (
+                            <Settings
+                                key={user.id}
+                                user={user}
+                                preferences={userSettings}
+                                onUserUpdated={setUser}
+                                onPreferencesSaved={settings => {
+                                    setUserSettings(settings);
+                                    if (editingId === null) {
+                                        setLanguage(settings.default_language);
+                                    }
+                                    setTheme(settings.theme);
+                                }}
+                                onAccountDeleted={() => {
+                                    socket.disconnect();
+                                    workspaceHistoryEntry.current = false;
+                                    window.history.replaceState({}, "", "/");
+                                    localStorage.removeItem("token");
+                                    setUser(null);
+                                    setDocuments([]);
+                                    clearWorkspace();
+                                    setActiveSection("dashboard");
+                                    setSettingsLoading(true);
+                                    setSettingsError("");
+                                    setUserSettings(DEFAULT_USER_SETTINGS);
+                                    setTheme("dark");
+                                }}
+                            />
+                        )
+                    ) : (
+                        <>
+                    {(activeSection !== "shared-documents" || editingId !== null) && (
                     <div className="document-actions">
                         <input
                             type="text"
@@ -341,41 +631,6 @@ function Dashboard() {
                             </button>
                         )}
                     </div>
-
-                    {editingId !== null && (
-                        <div>
-                            <button
-                                className="close-workspace-button"
-                                onClick={() => {
-                                    socket.emit("leave-document", String(editingId));
-                                    setEditingId(null);
-                                    setDocumentRole(null);
-                                    setVersions([]);
-                                    setContent("");
-                                    setNewDocument("");
-                                    setDocumentType("Code Editor");
-                                }}
-                            >
-                                Back to Documents
-                            </button>
-
-                            <div className="workspace-header">
-                                <div>
-                                    <h2>{newDocument}</h2>
-                                    <p>{documentType} Workspace</p>
-                                </div>
-
-                                <div className="workspace-info">
-                                    <span className="workspace-type">
-                                        {documentType}
-                                    </span>
-
-                                    <span className="workspace-role">
-                                        {documentRole}
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
                     )}
 
                     {editingId !== null && documentType === "Code Editor" && (
@@ -401,6 +656,7 @@ function Dashboard() {
                             <CodeEditor
                                 value={content}
                                 language={language}
+                                theme={theme}
                                 onChange={(updatedContent) => {
                                     setContent(updatedContent);
 
@@ -411,7 +667,7 @@ function Dashboard() {
                                             documentId: String(editingId),
                                             content: updatedContent
                                         });
-                                    }, 500);
+                                    }, userSettings.autosave_delay_ms);
                                 }}
                             />
                         </div>
@@ -432,7 +688,7 @@ function Dashboard() {
                                             documentId: String(editingId),
                                             content: updatedContent
                                         });
-                                    }, 500);
+                                    }, userSettings.autosave_delay_ms);
                                 }}
                             />
                         </div>
@@ -468,8 +724,10 @@ function Dashboard() {
                         <ShareDocument documentId={editingId} />
                     )}
 
-                    <div className="document-list">
-                        {documents.map((document) => (
+                    {editingId === null && <div className="document-list">
+                        {visibleDocuments.length === 0 ? (
+                            <p className="empty-documents-message">{emptyDocumentsMessage}</p>
+                        ) : visibleDocuments.map((document) => (
                             <DocumentCard
                                 key={document.id}
                                 id={document.id}
@@ -480,9 +738,12 @@ function Dashboard() {
                                 onEdit={editDocument}
                             />
                         ))}
-                    </div>
-                </main>
-            </div>
+                    </div>}
+                        </>
+                    )}
+                    </main>
+                </div>
+            </>
         )
     );
 }
